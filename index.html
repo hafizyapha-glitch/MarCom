@@ -41,9 +41,10 @@
     .logo-sub { font-size: 13px; color: var(--muted); font-weight: 500; }
     
     .header-right { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-    .header-select { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 8px 32px 8px 16px; font-size: 14px; font-weight: 600; font-family: 'Inter','Noto Sans Thai',sans-serif; outline: none; cursor: pointer; transition: border-color .2s; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748B' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; box-shadow: var(--shadow-sm); min-width: 150px; }
+    .header-select { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 8px 32px 8px 16px; font-size: 14px; font-weight: 600; font-family: 'Inter','Noto Sans Thai',sans-serif; outline: none; transition: all .2s; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748B' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; box-shadow: var(--shadow-sm); min-width: 150px; cursor: pointer; }
     body.dark-mode .header-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394A3B8' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
     .header-select:focus { border-color: var(--primary); }
+    .header-select:disabled { cursor: not-allowed; opacity: 0.5; }
 
     .platform-tabs { display: flex; gap: 24px; }
     .platform-tab { background: transparent; border: none; font-family: 'Inter', 'Noto Sans Thai', sans-serif; font-size: 14px; font-weight: 600; color: var(--text-secondary); cursor: pointer; padding: 10px 4px; border-bottom: 2px solid transparent; transition: all .2s; display: flex; align-items: center; gap: 6px; }
@@ -460,13 +461,17 @@ window.switchMonth = async function(month, forceRefresh = false) {
   
   const monthSelect = document.getElementById('monthSelect');
   if (monthSelect && monthSelect.value !== month) { monthSelect.value = month; }
-  document.getElementById('filterCampaign').value = '';
+  
+  // Only clear campaign filter if we are NOT using a group filter
+  const campaignFilterVal = document.getElementById('filterCampaign').value;
+  if (!campaignFilterVal.startsWith('GROUP:')) {
+     document.getElementById('filterCampaign').value = '';
+  }
   document.getElementById('filterObjective').value = '';
 
   showStatus(`กำลังดึงข้อมูล ${currentPlatform} เดือน ${month}...`);
   const mIndex = ALL_MONTHS.indexOf(month);
   
-  // โหลดเดือนปัจจุบัน และ เดือนที่แล้ว เสมอ เพื่อการวิเคราะห์ MoM
   const prevMonthIndex = mIndex > 0 ? mIndex - 1 : 11;
   const prevMonth = ALL_MONTHS[prevMonthIndex];
 
@@ -640,7 +645,6 @@ async function fetchAllBackground() {
 function matchesCampaign(r) {
     const campaignFilter = document.getElementById('filterCampaign').value;
     
-    // หากมีการเลือก Campaign ข้าม Objective ไปเลย
     if (campaignFilter) {
         if (campaignFilter.startsWith('GROUP:')) {
             const gName = campaignFilter.replace('GROUP:', '');
@@ -660,14 +664,44 @@ function matchesCampaign(r) {
     return true;
 }
 
-function getComparisonData() {
+function getComparisonData(isGroup = false) {
     let baseData = globalData.filter(r => r.platform === currentPlatform && matchesCampaign(r));
     const mIndex = ALL_MONTHS.indexOf(currentMonth);
 
     let currentObj = { spend:0, reach:0, impressions:0, clicks:0, views:0, engagements:0, purchases:0, convValue:0 };
     let previousObj = { spend:0, reach:0, impressions:0, clicks:0, views:0, engagements:0, purchases:0, convValue:0 };
 
-    // Month on Month aggregation
+    const calcCost = (obj) => {
+        return {
+            cpr: obj.reach > 0 ? (obj.spend / obj.reach) * 1000 : 0,
+            cpm: obj.impressions > 0 ? (obj.spend / obj.impressions) * 1000 : 0,
+            cpv: obj.views > 0 ? obj.spend / obj.views : 0,
+            cpe: obj.engagements > 0 ? obj.spend / obj.engagements : 0,
+            freq: obj.reach > 0 ? obj.impressions / obj.reach : 0
+        };
+    };
+
+    // When a group is selected, bypass month logic and aggregate everything
+    if (isGroup) {
+        baseData.forEach(r => {
+            currentObj.spend += r.spend;
+            currentObj.reach += r.reach;
+            currentObj.impressions += r.impressions;
+            currentObj.clicks += r.clicks;
+            currentObj.views += r.views;
+            currentObj.engagements += r.engagements;
+            currentObj.purchases += r.purchases;
+            currentObj.convValue += r.convValue;
+        });
+        
+        return { 
+            c: {...currentObj, ...calcCost(currentObj)}, 
+            p: {...previousObj, ...calcCost(previousObj)}, 
+            labels: { c: 'ทุกเดือน (All Months)', p: '' } 
+        };
+    }
+
+    // Default Month on Month aggregation
     let aggregatedMonthly = {};
     baseData.forEach(r => {
         let k = r.monthIndex;
@@ -688,16 +722,6 @@ function getComparisonData() {
 
     let labelCurrent = `เดือน ${ALL_MONTHS[mIndex]}`;
     let labelPrevious = `เดือน ${ALL_MONTHS[prevMonthIndex]}`;
-
-    const calcCost = (obj) => {
-        return {
-            cpr: obj.reach > 0 ? (obj.spend / obj.reach) * 1000 : 0,
-            cpm: obj.impressions > 0 ? (obj.spend / obj.impressions) * 1000 : 0,
-            cpv: obj.views > 0 ? obj.spend / obj.views : 0,
-            cpe: obj.engagements > 0 ? obj.spend / obj.engagements : 0,
-            freq: obj.reach > 0 ? obj.impressions / obj.reach : 0
-        };
-    };
 
     return { 
         c: {...currentObj, ...calcCost(currentObj)}, 
@@ -721,11 +745,24 @@ const getDiffHtml = (currentVal, previousVal, labelCurrent, labelPrevious, rever
     return `<span class="kpi-diff ${colorClass}" title="${titleText}">${sign} ${Math.abs(diff).toFixed(1)}%</span>`;
 };
 
+function updateFilterUI() {
+    const filterSelect = document.getElementById('filterCampaign');
+    if (!filterSelect) return;
+    const isGroup = filterSelect.value.startsWith('GROUP:');
+    const monthSelect = document.getElementById('monthSelect');
+    if (monthSelect) {
+        monthSelect.disabled = isGroup;
+        monthSelect.style.opacity = isGroup ? '0.5' : '1';
+        monthSelect.style.cursor = isGroup ? 'not-allowed' : 'pointer';
+        monthSelect.title = isGroup ? 'Filter แบบจัดกลุ่ม จะแสดงข้อมูลรวมทุกเดือน' : '';
+    }
+}
+
 function renderAll() { 
   if (currentPlatform === 'overall') return;
   renderKPIs(); 
   if (currentPlatform === 'facebook') renderCharts(); 
-  renderTopAdsFB(); // Both platforms use this now
+  renderTopAdsFB(); 
 }
 
 function updateSourceLabel() {
@@ -738,7 +775,8 @@ function updateSourceLabel() {
 }
 
 function renderKPIs() {
-  const currentMonthData = globalData.filter(r => r.platform === currentPlatform && r.month === currentMonth && matchesCampaign(r));
+  const isGroup = document.getElementById('filterCampaign').value.startsWith('GROUP:');
+  const currentMonthData = globalData.filter(r => r.platform === currentPlatform && (isGroup ? true : r.month === currentMonth) && matchesCampaign(r));
   
   const spend = currentMonthData.reduce((s,r)=>s+r.spend,0);
   const reach = currentMonthData.reduce((s,r)=>s+r.reach,0);
@@ -752,7 +790,7 @@ function renderKPIs() {
   const cpe = engagements > 0 ? spend / engagements : 0;
   const freq = reach > 0 ? impressions / reach : 0;
 
-  const compData = getComparisonData();
+  const compData = getComparisonData(isGroup);
   const cData = compData.c;
   const pData = compData.p;
   const labelC = compData.labels.c;
@@ -796,7 +834,7 @@ function renderKPIs() {
   ];
 
   document.getElementById('kpiSection').innerHTML = `
-    <div class="kpi-group-label">Overview (ยอดรวมของ ${currentMonth})</div>
+    <div class="kpi-group-label">Overview (${isGroup ? 'ยอดรวมทุกเดือน (All Months)' : 'ยอดรวมของ ' + currentMonth})</div>
     <div class="kpi-grid row6" style="margin-bottom: 24px;">${overviewKPIs.join('')}</div>
     <div class="kpi-group-label">Cost Efficiency</div>
     <div class="kpi-grid row4">${costKPIs.join('')}</div>
@@ -810,7 +848,8 @@ function renderCharts() {
   
   const isDark = document.body.classList.contains('dark-mode');
   const textColor = isDark ? '#F8FAFC' : '#111827';
-  const d = globalData.filter(r => r.platform === currentPlatform && r.month === currentMonth && matchesCampaign(r));
+  const isGroup = document.getElementById('filterCampaign').value.startsWith('GROUP:');
+  const d = globalData.filter(r => r.platform === currentPlatform && (isGroup ? true : r.month === currentMonth) && matchesCampaign(r));
 
   function axisStyle() {
     return { grid:{color:isDark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)'}, ticks:{color:isDark?'#94A3B8':'#6B7280',font:{family:'Inter,Noto Sans Thai',size:11}}, border:{color:'transparent'} };
@@ -828,7 +867,7 @@ function renderCharts() {
   };
 
   const selectedMetricLabel = metricLabels[currentDemoMetric];
-  document.getElementById('demoChartSub').textContent = `การวิเคราะห์กลุ่มเป้าหมายแยกตามอายุและเพศ (อิงตาม ${selectedMetricLabel})`;
+  document.getElementById('demoChartSub').textContent = `การวิเคราะห์กลุ่มเป้าหมายแยกตามอายุและเพศ (อิงตาม ${selectedMetricLabel})${isGroup ? ' - ยอดรวมทุกเดือน' : ''}`;
 
   const genderColors = { 'male': '#3B82F6', 'female': '#EC4899', 'unknown': '#94A3B8' };
 
@@ -861,7 +900,8 @@ window.scrollCarousel = function(direction) {
 };
 
 function renderTopAdsFB() {
-  let baseData = globalData.filter(r => r.platform === currentPlatform && r.month === currentMonth && matchesCampaign(r));
+  const isGroup = document.getElementById('filterCampaign').value.startsWith('GROUP:');
+  let baseData = globalData.filter(r => r.platform === currentPlatform && (isGroup ? true : r.month === currentMonth) && matchesCampaign(r));
   const groupedObj = {};
   
   baseData.forEach(r => {
@@ -890,6 +930,11 @@ function renderTopAdsFB() {
   const top10 = adList.slice(0, 10);
   
   const container = document.getElementById('topAdsContainer');
+  const subTitleEl = document.getElementById('topAdsSubTitle');
+  if (subTitleEl) {
+      subTitleEl.textContent = isGroup ? 'โฆษณาที่มีประสิทธิภาพสูงสุดในกลุ่มนี้ (ยอดรวมทุกเดือน)' : 'โฆษณาที่มีประสิทธิภาพสูงสุดในเดือนนี้ (Top 10)';
+  }
+
   if (top10.length === 0) {
       container.innerHTML = `<div style="width: 100%; text-align: center; color: var(--muted); font-size: 13px; padding: 20px;">ไม่มีข้อมูลโฆษณา</div>`;
       return;
@@ -1039,13 +1084,23 @@ function populateFilters() {
   document.getElementById('filterCampaign').innerHTML = html;
   
   const options = Array.from(document.getElementById('filterCampaign').options).map(o => o.value);
-  if (options.includes(currentCamp)) document.getElementById('filterCampaign').value = currentCamp;
+  if (options.includes(currentCamp)) {
+      document.getElementById('filterCampaign').value = currentCamp;
+  } else {
+      document.getElementById('filterCampaign').value = '';
+  }
+  updateFilterUI();
 }
 
-function applyFilters() { renderAll(); }
+function applyFilters() { 
+  updateFilterUI();
+  renderAll(); 
+}
+
 function clearFilters() {
   document.getElementById('filterCampaign').value = '';
   document.getElementById('filterObjective').value = '';
+  updateFilterUI();
   renderAll();
 }
 
