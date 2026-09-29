@@ -80,17 +80,30 @@
     .content-head { padding:14px 16px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; border-bottom:1px solid var(--border); background:var(--surface); }
     .content-head-title { font-size:13px; font-weight:700; line-height:1.35; }
     .content-head-sub { font-size:11px; color:var(--muted); margin-top:4px; line-height:1.5; }
-    .table-wrap { overflow-x:auto; }
-    table { width:100%; border-collapse:collapse; min-width:950px; }
-    th { background:var(--surface); color:var(--text-secondary); font-size:10.5px; font-weight:700; text-align:right; padding:11px 12px; border-bottom:1px solid var(--border); white-space:nowrap; line-height:1.35; }
-    td { color:var(--text); font-size:11.5px; text-align:right; padding:12px 12px; border-bottom:1px solid var(--border); white-space:nowrap; line-height:1.45; }
-    th:first-child, td:first-child { text-align:left; }
-    tbody tr:last-child td { border-bottom:0; }
-    tbody tr:hover td { background:var(--surface); }
-    .ad-cell { display:flex; align-items:center; gap:9px; min-width:250px; max-width:360px; white-space:normal; }
-    .ad-rank { width:22px; height:22px; border-radius:7px; display:flex; align-items:center; justify-content:center; background:var(--surface); border:1px solid var(--border); font-size:10px; font-weight:700; flex:0 0 auto; }
-    .ad-thumb { width:42px; height:42px; border-radius:7px; object-fit:cover; background:var(--surface); border:1px solid var(--border); flex:0 0 auto; }
-    .ad-name { font-weight:600; line-height:1.48; overflow-wrap:anywhere; }
+
+    /* Content Performance carousel */
+    .content-carousel-shell { position:relative; padding:12px 14px 8px; }
+    .content-carousel { display:flex; gap:14px; overflow-x:auto; overflow-y:hidden; scroll-behavior:smooth; scroll-snap-type:x proximity; padding:0 0 12px; scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+    .content-carousel::-webkit-scrollbar { height:7px; }
+    .content-carousel::-webkit-scrollbar-track { background:transparent; }
+    .content-carousel::-webkit-scrollbar-thumb { background:var(--border); border-radius:99px; }
+    .performance-card { flex:0 0 calc((100% - 56px)/5); min-width:230px; max-width:310px; scroll-snap-align:start; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--card); box-shadow:var(--shadow-sm); transition:transform .18s, box-shadow .18s, border-color .18s; }
+    .performance-card:hover { transform:translateY(-2px); box-shadow:var(--shadow); border-color:color-mix(in srgb,var(--primary) 45%,var(--border)); }
+    .performance-image { position:relative; width:100%; aspect-ratio:1/1; background:var(--surface); overflow:hidden; border-bottom:1px solid var(--border); }
+    .performance-image img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+    .performance-image-placeholder { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#94A3B8; font-size:12px; font-weight:500; }
+    .performance-card-body { padding:13px 14px 14px; }
+    .performance-title { font-size:12.5px; font-weight:700; line-height:1.45; min-height:54px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; }
+    .performance-stats { display:grid; grid-template-columns:1fr 1fr; gap:8px 12px; margin-top:12px; padding-top:11px; border-top:1px solid var(--border); }
+    .performance-stat { min-width:0; }
+    .performance-stat.wide { grid-column:1/-1; }
+    .performance-stat-label { display:block; color:var(--muted); font-size:10px; line-height:1.35; margin-bottom:2px; }
+    .performance-stat-value { display:block; color:var(--text); font-size:11.5px; font-weight:700; line-height:1.35; overflow-wrap:anywhere; }
+    .performance-stat.highlight .performance-stat-value { color:var(--primary); }
+    .carousel-arrow { position:absolute; z-index:5; top:42%; transform:translateY(-50%); width:34px; height:34px; border-radius:50%; border:1px solid var(--border); background:var(--card); color:var(--text); box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:20px; line-height:1; }
+    .carousel-arrow:hover { color:var(--primary); border-color:var(--primary); }
+    .carousel-arrow.prev { left:5px; }
+    .carousel-arrow.next { right:5px; }
     .metric-positive { color:var(--emerald); font-weight:700; }
     .empty-state { padding:28px; text-align:center; color:var(--muted); font-size:12px; line-height:1.55; }
 
@@ -121,6 +134,7 @@
       .kpi-grid.cols-6 { grid-template-columns:repeat(3,minmax(0,1fr)); }
       .kpi-grid.cols-5 { grid-template-columns:repeat(3,minmax(0,1fr)); }
       .kpi-grid.cols-4 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .performance-card { flex-basis:calc((100% - 42px)/4); }
     }
     @media (max-width:760px) {
       .header-inner, .filter-inner, .main { padding-left:14px; padding-right:14px; }
@@ -128,11 +142,15 @@
       .kpi-grid.cols-6, .kpi-grid.cols-5, .kpi-grid.cols-4 { grid-template-columns:repeat(2,minmax(0,1fr)); }
       .section-title { font-size:17px; }
       .brand-sub { display:none; }
+      .performance-card { flex-basis:calc((100% - 14px)/2); min-width:215px; }
+      .carousel-arrow { display:none; }
+      .content-carousel-shell { padding-left:12px; padding-right:12px; }
     }
     @media (max-width:480px) {
       .kpi-grid.cols-6, .kpi-grid.cols-5, .kpi-grid.cols-4 { grid-template-columns:1fr; }
       .header-controls { width:100%; justify-content:space-between; }
       .filter-row { justify-content:flex-start; width:100%; }
+      .performance-card { flex-basis:86%; min-width:240px; }
     }
   </style>
 </head>
@@ -205,13 +223,13 @@
           <div class="block-title">Facebook Content Performance</div>
           <div class="content-card">
             <div class="content-head">
-              <div><div class="content-head-title">Top Facebook Content</div><div class="content-head-sub">Top 10 Ads ตามตัวชี้วัดที่เลือก</div></div>
+              <div><div class="content-head-title">Facebook Ads Performance Gallery</div><div class="content-head-sub">Top 10 Content • เลื่อนซ้าย-ขวาเพื่อดูรายละเอียด Performance</div></div>
               <select id="facebookContentSort" class="compact-select" onchange="renderContentPerformance('facebook')">
                 <option value="spend">Spend สูงสุด</option><option value="reach">Reach สูงสุด</option><option value="impressions">Impressions สูงสุด</option>
                 <option value="clicks">Clicks สูงสุด</option><option value="views">Views สูงสุด</option><option value="cpc">CPC ต่ำสุด</option><option value="cpv">CPV ต่ำสุด</option>
               </select>
             </div>
-            <div id="facebookContentTable" class="table-wrap"></div>
+            <div id="facebookContentTable"></div>
           </div>
         </div>
       </div>
@@ -234,13 +252,13 @@
           <div class="block-title">TikTok Content Performance</div>
           <div class="content-card">
             <div class="content-head">
-              <div><div class="content-head-title">Top TikTok Content</div><div class="content-head-sub">Top 10 Ads ตามตัวชี้วัดที่เลือก</div></div>
+              <div><div class="content-head-title">TikTok Ads Performance Gallery</div><div class="content-head-sub">Top 10 Content • เลื่อนซ้าย-ขวาเพื่อดูรายละเอียด Performance</div></div>
               <select id="tiktokContentSort" class="compact-select" onchange="renderContentPerformance('tiktok')">
                 <option value="spend">Spend สูงสุด</option><option value="reach">Reach สูงสุด</option><option value="impressions">Impressions สูงสุด</option>
                 <option value="engagements">Engagement สูงสุด</option><option value="views">Views สูงสุด</option><option value="cpe">CPE ต่ำสุด</option><option value="cpv">CPV ต่ำสุด</option>
               </select>
             </div>
-            <div id="tiktokContentTable" class="table-wrap"></div>
+            <div id="tiktokContentTable"></div>
           </div>
         </div>
       </div>
@@ -491,6 +509,12 @@ function defaultThumb(platform,adName) {
   const safe=encodeURIComponent(String(adName).trim().replace(/'/g,'%27'));
   return {jpg:`./data/${platform}/picture/${safe}.jpg`,png:`./data/${platform}/picture/${safe}.png`};
 }
+function scrollContentCarousel(platform,direction) {
+  const track=document.getElementById(`${platform}ContentCarousel`);
+  if (!track) return;
+  const amount=Math.max(260,Math.round(track.clientWidth*.82));
+  track.scrollBy({left:direction*amount,behavior:'smooth'});
+}
 function renderContentPerformance(platform) {
   const sortEl=document.getElementById(`${platform}ContentSort`); const target=document.getElementById(`${platform}ContentTable`); if (!target) return;
   const sortKey=sortEl?.value || 'spend';
@@ -500,19 +524,32 @@ function renderContentPerformance(platform) {
   rows=rows.filter(r => lowerBetter ? r[sortKey]>0 : true).slice(0,10);
   if (!rows.length) { target.innerHTML='<div class="empty-state">ไม่มีข้อมูล Content Performance สำหรับ Campaign / ตัวกรองนี้</div>'; return; }
   const isFB=platform==='facebook';
-  const headers=isFB ? ['Content / Ad','Spend','Reach','Impressions','Clicks','View','CPC','CPV'] : ['Content / Ad','Spend','Reach','Impressions','Engagement','View','Like','Comment','Share','Favorite','Profile Visit','CPE','CPV'];
-  let html='<table><thead><tr>'+headers.map(h=>`<th>${h}</th>`).join('')+'</tr></thead><tbody>';
+  const metricLabel={spend:'Spend',reach:'Reach',impressions:'Impressions',clicks:'Clicks',views:'View',engagements:'Engagement',likes:'Like',comments:'Comment',shares:'Share',favorites:'Favorite',profileVisits:'Profile Visit',cpc:'CPC',cpv:'CPV',cpe:'CPE'};
+  const fmt=(key,val)=> key==='spend' ? formatCurrency(val) : ['cpc','cpv','cpe'].includes(key) ? formatCost(val) : formatNum(val);
+  const keys=isFB
+    ? ['spend','reach','impressions','clicks','views','cpc','cpv']
+    : ['spend','reach','impressions','engagements','views','likes','comments','shares','favorites','profileVisits','cpe','cpv'];
+
+  let cards='';
   rows.forEach((r,i)=>{
     const t=defaultThumb(platform,r.name); const src=r.imageUrl || t.jpg;
-    const image=`<img class="ad-thumb" src="${safeText(src)}" onerror="if(!this.dataset.pngTried){this.dataset.pngTried='1';this.src='${t.png}';}else{this.style.display='none';}">`;
-    const first=`<td><div class="ad-cell"><span class="ad-rank">${i+1}</span>${image}<span class="ad-name">${safeText(r.name)}</span></div></td>`;
-    if (isFB) {
-      html += `<tr>${first}<td>${formatCurrency(r.spend)}</td><td>${formatNum(r.reach)}</td><td>${formatNum(r.impressions)}</td><td>${formatNum(r.clicks)}</td><td>${formatNum(r.views)}</td><td>${formatCost(r.cpc)}</td><td>${formatCost(r.cpv)}</td></tr>`;
-    } else {
-      html += `<tr>${first}<td>${formatCurrency(r.spend)}</td><td>${formatNum(r.reach)}</td><td>${formatNum(r.impressions)}</td><td>${formatNum(r.engagements)}</td><td>${formatNum(r.views)}</td><td>${formatNum(r.likes)}</td><td>${formatNum(r.comments)}</td><td>${formatNum(r.shares)}</td><td>${formatNum(r.favorites)}</td><td>${formatNum(r.profileVisits)}</td><td>${formatCost(r.cpe)}</td><td>${formatCost(r.cpv)}</td></tr>`;
-    }
+    const stats=keys.map(key=>`<div class="performance-stat ${key===sortKey?'highlight':''}"><span class="performance-stat-label">${metricLabel[key]}</span><span class="performance-stat-value">${fmt(key,r[key])}</span></div>`).join('');
+    cards+=`<article class="performance-card">
+      <div class="performance-image">
+        <div class="performance-image-placeholder">No Image</div>
+        <img src="${safeText(src)}" alt="${safeText(r.name)}" loading="lazy" onload="this.previousElementSibling.style.display='none'" onerror="if(!this.dataset.pngTried){this.dataset.pngTried='1';this.src='${t.png}';}else{this.style.display='none';}">
+      </div>
+      <div class="performance-card-body">
+        <div class="performance-title">#${i+1} ${safeText(r.name)}</div>
+        <div class="performance-stats">${stats}</div>
+      </div>
+    </article>`;
   });
-  target.innerHTML=html+'</tbody></table>';
+  target.innerHTML=`<div class="content-carousel-shell">
+    <button class="carousel-arrow prev" type="button" aria-label="Previous" onclick="scrollContentCarousel('${platform}',-1)">&#10094;</button>
+    <div id="${platform}ContentCarousel" class="content-carousel">${cards}</div>
+    <button class="carousel-arrow next" type="button" aria-label="Next" onclick="scrollContentCarousel('${platform}',1)">&#10095;</button>
+  </div>`;
 }
 
 function populateFilters() {
